@@ -1,5 +1,7 @@
 import logging
+import os
 import pathlib
+import sys
 from typing import List, Tuple
 import argparse
 
@@ -79,16 +81,16 @@ def main():
 
     if not out_names:
         logging.warning(f"No faces were detected in the image: {args.input}")
-        return
+        return 0
 
     for out_name in out_names:
         img = Image.open(out_name.out_name)
         w, h = img.size
         canvas_size = (w + out_name.lost_pixels[0], h + out_name.lost_pixels[1])
         print(out_name.lost_pixels)
-        canvas = Image.new(mode = "RGB", size = canvas_size,   color = (255, 255, 255))
+        canvas = Image.new(mode="RGB", size=canvas_size,   color=(255, 255, 255))
         canvas.paste(img, (out_name.lost_pixels[0] // 2, out_name.lost_pixels[1] // 2))
         canvas.save(out_name.out_name)
-
+    return 0
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
