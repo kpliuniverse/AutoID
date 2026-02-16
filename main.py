@@ -81,7 +81,7 @@ def main():
 
     if not out_names:
         logging.warning(f"No faces were detected in the image: {args.input}")
-        return 0
+        return 1
 
     for out_name in out_names:
         img = Image.open(out_name.out_name)
