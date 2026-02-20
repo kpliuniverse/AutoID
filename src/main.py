@@ -1,12 +1,15 @@
 import logging
 import os
 import pathlib
+import shutil
 import sys
 from typing import List, Tuple
 import argparse
 
 import cv2
 from PIL import Image
+
+import requests
 
 class CroppedImageInfo:
     cropped_image: cv2.Mat
@@ -22,6 +25,9 @@ SIZES_INCH = {
     "1x1": (1, 1),
     "2x2": (2, 2)
 }
+
+with open("config/api_key", "r") as f:
+    API_KEY = f.read().strip()
 
 SIZES_PIXELS = {k: (v[0] * DPI, v[1] * DPI) for k, v in SIZES_INCH.items()}
 
@@ -68,7 +74,7 @@ def main():
     parser.add_argument('output', type=str, help='Path to the output image')
     parser.add_argument('size', type=str, help='Size of the output image (e.g., 1x1, 2x2)')
     parser.add_argument('--leeway', type=int, default=0, help='How much of surrounding area to include around the face')
-    parser.add_argument('--rembg', type=bool, default=False, help='Remove BG? (Uses remove.bg API)')
+    parser.add_argument('--rembg', action='store_const', const=True, default=False, help='Remove BG? (Uses remove.bg API)' )
     args = parser.parse_args()
 
     offset = 0
@@ -96,8 +102,30 @@ def main():
     resized_canvas = canvas.resize(SIZES_PIXELS[args.size], resample=Image.LANCZOS)
     try:
         resized_canvas.save(name)
+
+
     except Exception as e:
         logging.error(f"Failed to save image {name}: {e}")
         return 1
+    
+    
+    if args.rembg:
+        response = requests.post(
+            'https://api.remove.bg/v1.0/removebg',
+            files={'image_file': open(name, 'rb')},
+            data={'size': 'auto'},
+            headers={'X-Api-Key': API_KEY},
+        )
+        if response.status_code == requests.codes.ok:
+            with open(name, 'wb') as out:
+                out.write(response.content)
+            face = Image.open(name)
+            final_canvas = Image.new(mode="RGBA", size=face.size, color=(255, 255, 255, 255))
+            final_canvas.paste(face, (0, 0), face)
+            final_canvas.save(name)
+        else:
+            logging.error(f"API Error {response.status_code} - {response.text}")
+            os.remove(name)
+
     #
     return 0
