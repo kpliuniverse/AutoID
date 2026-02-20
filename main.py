@@ -83,7 +83,7 @@ def main():
     except Exception as e:
         logging.error(f"Failed to save image {name}: {e}")
         return 1
-    
+    #
     
 if __name__ == "__main__":
     sys.exit(main())
